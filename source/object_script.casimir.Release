@@ -1,0 +1,16 @@
+INPUT(
+./release/main.o
+./release/mainwindow.o
+./release/cio.o
+./release/lowlevel.o
+./release/sd.o
+./release/portwindowimpl.o
+./release/precisetimer.o
+./release/dtime.o
+./release/keypresseater.o
+./release/pkt.o
+./release/moc_mainwindow.o
+./release/moc_portwindowimpl.o
+./release/moc_keypresseater.o
+./release/qrc_casimir-companion.o
+);

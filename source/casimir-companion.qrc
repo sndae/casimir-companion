@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file>ssd1_icon.png</file>
+        <file>ssd1_icon2.png</file>
+        <file>bmp_paused.png</file>
+        <file>bmp_rec.png</file>
+        <file>bmp_paused2.png</file>
+        <file>bmp_rec2.png</file>
+        <file>bmp_nc.png</file>
+    </qresource>
+</RCC>

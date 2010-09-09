@@ -1,0 +1,9 @@
+rem Read the flash drive
+rem Try the different ways in which the hard disk can be read
+
+c:\bin\dd --progress if=\\.\h: of=dat_mnt.dat bs=512 count=16
+
+c:\bin\dd --progress if=\\.\Volume{ee1b67d3-52e7-11df-8700-08002700a0fa} of=dat_vol.dat bs=512 count=16
+
+c:\bin\dd --progress if=\\?\Device\HarddiskVolume36 of=dat_part.dat bs=512 count=16
+
