@@ -1,0 +1,16 @@
+INPUT(
+./debug/main.o
+./debug/mainwindow.o
+./debug/cio.o
+./debug/lowlevel.o
+./debug/sd.o
+./debug/portwindowimpl.o
+./debug/precisetimer.o
+./debug/dtime.o
+./debug/keypresseater.o
+./debug/pkt.o
+./debug/moc_mainwindow.o
+./debug/moc_portwindowimpl.o
+./debug/moc_keypresseater.o
+./debug/qrc_casimir-companion.o
+);
