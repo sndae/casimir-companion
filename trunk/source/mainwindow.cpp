@@ -315,67 +315,89 @@ void MainWindow::ReadFileSystem(int volume)
 //bool MainWindow::CopyRaw(QByteArray src,QByteArray dst,int blockstart,int blockend)
 bool MainWindow::CopyRaw(QByteArray src,QByteArray dst,int entry)
 {
-	int size=512;
-	unsigned char buffer[size];
+   int copyunitblock = 128;
+   int size;
+   unsigned char buffer[copyunitblock*512];
 	unsigned blockstart = filesystem.logentry[entry].blockstart;
 	unsigned blockend = filesystem.logentry[entry].blockend;
+   int nblockstocopy = blockend-blockstart+1;      // Number of blocks to copy
+   int nblockscopied = 0;                          // Blocks copied so far
 	bool ok;
 	int len;
 	qint64 len64;
-	QEventLoop evt;
+   QString title = QString("Exporting log on %1[%2-%3] to %4").arg(QString(src)).arg(blockstart).arg(blockend).arg(QString(dst));
 
 
+   // Input / output files
 	LowLevelFile filein(src);
 	filein.open();
 	QFile fileout(dst);
 	fileout.open(QIODevice::WriteOnly|QIODevice::Truncate);
 
-
-	QProgressDialog pd(QString("Exporting log on %1[%2-%3] to %4").arg(QString(src)).arg(blockstart).arg(blockend).arg(QString(dst)),"Abort export", blockstart, blockend, this);
-	pd.setCancelButton(0);
-	pd.setWindowModality(Qt::WindowModal);
+   // Progress dialog
+   QProgressDialog pd(title,"Abort export", 0, nblockstocopy, this,Qt::Tool);
+   pd.setWindowModality(Qt::WindowModal);
+   pd.setAutoReset(false);
 
 	// First copy the ROOT
 	strcpy((char*)buffer,"LOG");
 	fileout.write((char*)buffer,4);
-	memset(buffer,0,9);
-	fileout.write((char*)buffer,9);
+   memset(buffer,0,10);
+   fileout.write((char*)buffer,10);
 	// Copy the log entry
 	printf("Writing logentry. Sizeof: %d\n",sizeof(fs_logentry));
+   printf("sizeof logentry: %d\n",sizeof(fs_logentry));
 	fileout.write((char*)&filesystem.logentry[entry],sizeof(fs_logentry));
 
 
-	for(unsigned int block=blockstart;block<=blockend;block++)
-	{
-		pd.setValue(block);
+   unsigned long long o,no;
+   o = blockstart;
+   o<<=9;
+   ok = filein.seek(o,no);
+   if(!ok)
+   {
+      QMessageBox::critical(this,title,"Error seeking card");
+      return false;
+   }
 
-		unsigned long long o,no;
-		o = block;
-		o<<=9;
-		ok = filein.seek(o,no);
-		//printf("Block %d -> %lld. seek %d: %lld\n",block,o,ok,no);
-		if(!ok)
-		{
-			printf("Seek error\n");
-			return false;
-		}
-		ok = filein.read(size,buffer,len);
-		if(!ok || len!=size)
-		{
-			printf("Read error\n");
-			return false;
-		}
-		len64 = fileout.write((char*)buffer,size);
-		if(len64!=size)
-		{
-			printf("Write error\n");
-			return false;
-		}
-	}
+   printf("Copying %d blocks\n",nblockstocopy);
+   while(nblockscopied < nblockstocopy)
+   {
+      if (pd.wasCanceled())
+         break;
+      pd.setValue(nblockscopied);
 
+      // See how many blocks we can copy
+      //printf("unit: %d. nblockscopied: %d. nblockstocopy: %d\n",copyunitblock,nblockscopied,nblockstocopy);
+      while( nblockscopied+copyunitblock > nblockstocopy)
+      {
+         copyunitblock>>=1;
+         //printf("Resize unit. unit: %d. nblockscopied: %d. nblockstocopy: %d\n",copyunitblock,nblockscopied,nblockstocopy);
+      }
+      //printf("copyunitblock is now: %d\n",copyunitblock);
+
+      size = copyunitblock*512;
+      ok = filein.read(size,buffer,len);
+      if(!ok || len!=size)
+      {
+         QMessageBox::critical(this,title,"Error reading card");
+         return false;
+      }
+      len64 = fileout.write((char*)buffer,size);
+      if(len64!=size)
+      {
+         QMessageBox::critical(this,title,"Error writing log");
+         return false;
+      }
+      nblockscopied += copyunitblock;
+   }
+   bool cancelled = pd.wasCanceled();
+   printf("Copy done. cancelled: %d\n",cancelled);
 	filein.close();
 	fileout.close();
 	pd.close();
+   if(cancelled)
+      return false;
 	return true;
 }
 
@@ -1241,6 +1263,9 @@ bool MainWindow::DemuxLog(QString logfile)
 	stream_names[5]=logfilewoext+"_tmp.dat";
 	stream_names[6]=logfilewoext+"_merged.dat";
 
+   for(unsigned i=0;i<7;i++)
+   printf("%s\n",stream_names[i].toStdString().c_str());
+
 	// Check file already existing / overwrite
 	if(ui->checkBox_LogOverwrite->isChecked()==false)
 	{
@@ -1264,8 +1289,8 @@ bool MainWindow::DemuxLog(QString logfile)
 		QMessageBox::critical(this,logTitle,QString("Could not open log file %1 ").arg(logfile));
 		return false;
 	}
-	QByteArray fileheader = file.read(29);
-	if(fileheader.size()!=29)
+   QByteArray fileheader = file.read(LOG_HEADER_SIZE);
+   if(fileheader.size()!=LOG_HEADER_SIZE)
 	{
 		QMessageBox::critical(this,logTitle,QString("This does not appear to be a log file: invalid header").arg(logfile));
 		return false;
@@ -1275,12 +1300,13 @@ bool MainWindow::DemuxLog(QString logfile)
 	printf("Read %d bytes\n",data.size());
 
 	// Extract the interesting parameters
-	unsigned time_offset = *(unsigned*)(fileheader.constData()+17);
+   unsigned time_offset = *(unsigned*)(fileheader.constData()+LOG_OFFSET_TIME);
 	printf("Time offset of log: %u\n",time_offset);
 
 
 	STREAM_GENERIC stream_aud,stream_acc,stream_hmc,stream_sys,stream_lht,stream_tmp;
 
+   printf("Calling demux");
 	demux(data,time_offset,stream_aud,stream_acc,stream_hmc,stream_sys,stream_lht,stream_tmp);
 	printf("Demux done\n");
 
@@ -1346,4 +1372,18 @@ void MainWindow::on_checkBox_LogDemux_clicked()
 		ui->groupBox_MergeOptions->setEnabled(true);
 	else
 		ui->groupBox_MergeOptions->setEnabled(false);
+}
+
+void MainWindow::on_pushButton_LogDemux_clicked()
+{
+   QString fileName = QFileDialog::getOpenFileName(this,"Load a raw log file", QString(),"Raw log (*.bin)");
+
+   if(!fileName.isNull())
+   {
+      printf("Demuxing %s\n",fileName.toStdString().c_str());
+      DemuxLog(fileName);
+
+   }
+
+
 }

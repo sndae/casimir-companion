@@ -56,7 +56,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="../src/icon.qrc" />
+  <include location="casimir-companion.qrc" />
  </resources>
  <connections>
   <connection>
