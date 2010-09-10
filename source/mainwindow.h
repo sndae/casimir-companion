@@ -103,7 +103,8 @@ private:
 
 
 private slots:
-		void on_checkBox_LogDemux_clicked();
+      void on_pushButton_LogDemux_clicked();
+  void on_checkBox_LogDemux_clicked();
   void on_pushButton_LogSelectDirectory_clicked();
   void on_pushButton_3_clicked();
   void on_pushButton_LabelSave_clicked();

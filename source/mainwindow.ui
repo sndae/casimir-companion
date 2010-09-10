@@ -14,7 +14,7 @@
    <string>CASIMIR Companion - Memory card readout, interactive control and data alignment</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="digrec.qrc">
+   <iconset resource="casimir-companion.qrc">
     <normaloff>:/ssd1_icon2.png</normaloff>:/ssd1_icon2.png</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
@@ -815,7 +815,7 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>
-  <include location="digrec.qrc"/>
+  <include location="casimir-companion.qrc"/>
  </resources>
  <connections/>
 </ui>

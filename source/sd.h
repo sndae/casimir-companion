@@ -25,7 +25,10 @@ The block 0 is laid out as follows:
 ******************************************************************************/
 
 
+// Offset of 'time offset' in log files
+#define  LOG_OFFSET_TIME   18
 
+#define  LOG_HEADER_SIZE   30
 
 typedef struct {
 	unsigned long int device;
